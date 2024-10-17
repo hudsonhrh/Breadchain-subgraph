@@ -1,0 +1,29 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: EIP173ProxyWithReceive
+    network: gnosis
+    source:
+      address: "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3"
+      abi: EIP173ProxyWithReceive
+      startBlock: 32842600
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ProxyAdminTransferred
+        - ProxyImplementationUpdated
+      abis:
+        - name: EIP173ProxyWithReceive
+          file: ./abis/EIP173ProxyWithReceive.json
+      eventHandlers:
+        - event: ProxyAdminTransferred(indexed address,indexed address)
+          handler: handleProxyAdminTransferred
+        - event: ProxyImplementationUpdated(indexed address,indexed address)
+          handler: handleProxyImplementationUpdated
+      file: ./src/eip-173-proxy-with-receive.ts
