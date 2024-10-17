@@ -5,25 +5,38 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: EIP173ProxyWithReceive
+    name: Bread
     network: gnosis
     source:
       address: "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3"
-      abi: EIP173ProxyWithReceive
+      abi: Bread
       startBlock: 32842600
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - ProxyAdminTransferred
-        - ProxyImplementationUpdated
+        - BreadToken
+        - User
+        - TransferEvent
+        - MintEvent
+        - BurnEvent
+        - ClaimedYieldEvent
+        - DelegationEvent
       abis:
-        - name: EIP173ProxyWithReceive
-          file: ./abis/EIP173ProxyWithReceive.json
+        - name: Bread
+          file: ./abis/Bread.json
       eventHandlers:
-        - event: ProxyAdminTransferred(indexed address,indexed address)
-          handler: handleProxyAdminTransferred
-        - event: ProxyImplementationUpdated(indexed address,indexed address)
-          handler: handleProxyImplementationUpdated
-      file: ./src/eip-173-proxy-with-receive.ts
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Minted(address,uint256)
+          handler: handleMinted
+        - event: Burned(address,uint256)
+          handler: handleBurned
+        - event: ClaimedYield(uint256)
+          handler: handleClaimedYield
+        - event: DelegateChanged(indexed address,indexed address,indexed address)
+          handler: handleDelegateChanged
+        - event: DelegateVotesChanged(indexed address,uint256,uint256)
+          handler: handleDelegateVotesChanged
+      file: ./src/breadMapping.ts

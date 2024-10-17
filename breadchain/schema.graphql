@@ -1,6 +1,83 @@
-type ExampleEntity @entity {
-  id: Bytes!
-  count: BigInt!
-  previousAdmin: Bytes! # address
-  newAdmin: Bytes! # address
+type BreadToken @entity {
+  id: ID!
+  name: String
+  symbol: String
+  totalSupply: BigInt!
+  totalMinted: BigInt!
+  totalBurned: BigInt!
+  totalYieldClaimed: BigInt!
+  totalDelegatedVotes: BigInt!
+  yieldClaimer: Bytes
+}
+
+type User @entity {
+  id: ID!
+  balance: BigInt!
+  totalReceived: BigInt!
+  totalSent: BigInt!
+  totalMinted: BigInt!
+  totalBurned: BigInt!
+  totalYieldClaimed: BigInt!
+  votesDelegated: BigInt!
+  delegatesTo: String
+  transactionCount: Int!
+  transfersSent: [TransferEvent!]! @derivedFrom(field: "from")
+  transfersReceived: [TransferEvent!]! @derivedFrom(field: "to")
+  mintEvents: [MintEvent!]! @derivedFrom(field: "receiver")
+  burnEvents: [BurnEvent!]! @derivedFrom(field: "receiver")
+  yieldClaimedEvents: [ClaimedYieldEvent!]! @derivedFrom(field: "receiver")
+  delegationEvents: [DelegationEvent!]! @derivedFrom(field: "delegator")
+}
+
+type TransferEvent @entity {
+  id: ID!
+  from: User
+  to: User
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  logIndex: BigInt!
+  token: BreadToken!
+}
+
+type MintEvent @entity {
+  id: ID!
+  receiver: User!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  token: BreadToken!
+}
+
+type BurnEvent @entity {
+  id: ID!
+  receiver: User!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  token: BreadToken!
+}
+
+type ClaimedYieldEvent @entity {
+  id: ID!
+  receiver: User!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  token: BreadToken!
+}
+
+type DelegationEvent @entity {
+  id: ID!
+  delegator: User!
+  delegatee: User!
+  previousDelegatee: User!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  token: BreadToken!
 }
