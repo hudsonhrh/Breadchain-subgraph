@@ -10,6 +10,7 @@ type BreadToken @entity {
   yieldClaimer: Bytes
 }
 
+
 type User @entity {
   id: ID!
   balance: BigInt!
@@ -87,11 +88,35 @@ type DelegationEvent @entity {
   token: BreadToken!
 }
 
+type YieldDistributor @entity {
+  id: ID!
+  totalYieldDistributed: BigInt!
+  totalVotes: BigInt!
+  distributions: [YieldDistributionEvent!]! @derivedFrom(field: "yieldDistributor")
+  voteEvents: [VoteEvent!]! @derivedFrom(field: "yieldDistributor")
+  projects: [Project!]!
+}
+
+type Project @entity {
+  id: ID!
+  address: Bytes!
+  totalReceivedYield: BigInt!
+  distributions: [ProjectDistribution!]! @derivedFrom(field: "project")
+}
+
+type ProjectDistribution @entity {
+  id: ID!
+  project: Project!
+  yieldDistributionEvent: YieldDistributionEvent!
+  amount: BigInt!
+}
+
 type YieldDistributionEvent @entity {
   id: ID!
+  yieldDistributor: YieldDistributor!
   totalYield: BigInt!
   totalVotes: BigInt!
-  projectDistributions: [BigInt!]!
+  projectDistributions: [ProjectDistribution!]!
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: Bytes!
@@ -100,10 +125,30 @@ type YieldDistributionEvent @entity {
 type VoteEvent @entity {
   id: ID!
   voter: User!
+  yieldDistributor: YieldDistributor!
   points: [BigInt!]!
-  projects: [Bytes!]!
+  projects: [Project!]!
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: Bytes!
 }
+
+type ProjectAddedEvent @entity {
+  id: ID!
+  project: Project!
+  yieldDistributor: YieldDistributor!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ProjectRemovedEvent @entity {
+  id: ID!
+  project: Project!
+  yieldDistributor: YieldDistributor!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
 
