@@ -16,6 +16,8 @@ import {
   ProjectRemovedEvent,
 } from "../generated/schema";
 
+import { YieldDistributor as YieldDistributorContract } from "../generated/YieldDistributor/YieldDistributor";
+
 
 // Helper function to load or create a YieldDistributor
 function loadOrCreateYieldDistributor(id: string): YieldDistributor {
@@ -69,41 +71,60 @@ export function handleYieldDistributed(event: YieldDistributed): void {
     let distributor = loadOrCreateYieldDistributor(event.address.toHex());
     distributor.totalYieldDistributed = distributor.totalYieldDistributed.plus(event.params.yieldAmount);
   
-    // Create YieldDistributionEvent
-    let distributionEventId = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
-    let distributionEvent = new YieldDistributionEvent(distributionEventId);
-    distributionEvent.yieldDistributor = distributor.id;
-    distributionEvent.totalYield = event.params.yieldAmount;
-    distributionEvent.totalVotes = event.params.totalVotes;
-    distributionEvent.blockNumber = event.block.number;
-    distributionEvent.timestamp = event.block.timestamp;
-    distributionEvent.transactionHash = event.transaction.hash;
+    // Bind to the YieldDistributor contract
+    let contract = YieldDistributorContract.bind(event.address);
   
-    // Process project distributions
+    // Read PRECISION and yieldFixedSplitDivisor from the contract
+    let PRECISION = contract.PRECISION();
+    let yieldFixedSplitDivisor = contract.yieldFixedSplitDivisor();
+    let projectsLength = distributor.projects.length;
+  
+    // Reconstruct the yield distribution logic
+    let balance = event.params.yieldAmount;
+    let totalVotes = event.params.totalVotes;
     let projectDistributions = event.params.projectDistributions;
   
-    // Get the list of projects from the distributor entity
-    let projects = distributor.projects;
-  
     // Ensure the projects and distributions arrays are the same length
-    if (projects.length != projectDistributions.length) {
-      // Log an error or handle the mismatch appropriately
+    if (projectsLength != projectDistributions.length) {
+      log.warning("Mismatch in projects and distributions array lengths: projects {}, distributions {}", [
+        projectsLength.toString(),
+        projectDistributions.length.toString(),
+      ]);
       return;
     }
   
+    // Calculate fixed and voted yields
+    let fixedYield = balance.div(yieldFixedSplitDivisor);
+    let baseSplit = fixedYield.div(BigInt.fromI32(projectsLength));
+    let votedYield = balance.minus(fixedYield);
+  
     // Initialize projectDistributions array
+    let distributionEventId = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+    let distributionEvent = new YieldDistributionEvent(distributionEventId);
+    distributionEvent.yieldDistributor = distributor.id;
+    distributionEvent.totalYield = balance;
+    distributionEvent.totalVotes = totalVotes;
+    distributionEvent.blockNumber = event.block.number;
+    distributionEvent.timestamp = event.block.timestamp;
+    distributionEvent.transactionHash = event.transaction.hash;
     distributionEvent.projectDistributions = [];
   
-    for (let i = 0; i < projectDistributions.length; i++) {
-      let projectId = projects[i];
+    for (let i = 0; i < projectsLength; i++) {
+      let projectId = distributor.projects[i];
       let project = Project.load(projectId);
       if (project == null) {
         // Skip if the project is not found
         continue;
       }
   
+      // Calculate votedSplit for the project
+      let projectVote = projectDistributions[i];
+      let votedSplit = projectVote.times(votedYield).times(PRECISION).div(totalVotes).div(PRECISION);
+  
+      // Total amount received by the project
+      let amount = baseSplit.plus(votedSplit);
+  
       // Update project's totalReceivedYield
-      let amount = projectDistributions[i];
       project.totalReceivedYield = project.totalReceivedYield.plus(amount);
       project.save();
   
