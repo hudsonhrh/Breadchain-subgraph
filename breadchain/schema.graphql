@@ -27,7 +27,12 @@ type User @entity {
   burnEvents: [BurnEvent!]! @derivedFrom(field: "receiver")
   yieldClaimedEvents: [ClaimedYieldEvent!]! @derivedFrom(field: "receiver")
   delegationEvents: [DelegationEvent!]! @derivedFrom(field: "delegator")
+  votes: BigInt!
+  lastVotedBlock: BigInt!
+  distributions: [BigInt!]!
+  voteEvents: [VoteEvent!]! @derivedFrom(field: "voter")
 }
+
 
 type TransferEvent @entity {
   id: ID!
@@ -81,3 +86,24 @@ type DelegationEvent @entity {
   transactionHash: Bytes!
   token: BreadToken!
 }
+
+type YieldDistributionEvent @entity {
+  id: ID!
+  totalYield: BigInt!
+  totalVotes: BigInt!
+  projectDistributions: [BigInt!]!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type VoteEvent @entity {
+  id: ID!
+  voter: Voter!
+  points: [BigInt!]!
+  projects: [Bytes!]!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+

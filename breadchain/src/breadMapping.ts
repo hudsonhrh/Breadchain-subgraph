@@ -18,6 +18,11 @@ import {
 } from "../generated/schema";
 import { Bread } from "../generated/Bread/Bread";
 
+import {
+  YieldDistributed,
+  BreadHolderVoted,
+} from "../generated/YieldDistributor/YieldDistributor";
+
 // Define the burn address
 const BURN_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -34,6 +39,11 @@ function loadOrCreateUser(userId: string): User {
     user.transactionCount = 0;
     user.votesDelegated = BigInt.zero();
     user.delegatesTo = null;
+
+     // Initialize Voter fields
+     user.votes = BigInt.zero();
+     user.lastVotedBlock = BigInt.zero();
+     user.distributions = [];
   }
   return user;
 }
@@ -163,7 +173,6 @@ export function handleTransfer(event: Transfer): void {
 }
 
 export function handleMinted(event: Minted): void {
-  // Since minting is handled in handleTransfer, we don't adjust totalSupply here
   let receiverAddress = event.params.receiver.toHex();
   let amount = event.params.amount;
   let tokenAddress = event.address.toHex();
@@ -189,7 +198,6 @@ export function handleMinted(event: Minted): void {
 }
 
 export function handleBurned(event: Burned): void {
-  // Since burning is handled in handleTransfer, we don't adjust totalSupply here
   let receiverAddress = event.params.receiver.toHex();
   let amount = event.params.amount;
   let tokenAddress = event.address.toHex();
