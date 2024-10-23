@@ -66,4 +66,4 @@ dataSources:
           handler: handleYieldDistributed
         - event: BreadHolderVoted(indexed address,uint256[],address[])
           handler: handleBreadHolderVoted
-      file: ./src/breadMapping.ts
+      file: ./src/yieldDistrubtorMapping.ts
