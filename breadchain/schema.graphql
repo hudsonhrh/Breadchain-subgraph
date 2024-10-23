@@ -99,7 +99,7 @@ type YieldDistributionEvent @entity {
 
 type VoteEvent @entity {
   id: ID!
-  voter: Voter!
+  voter: User!
   points: [BigInt!]!
   projects: [Bytes!]!
   blockNumber: BigInt!

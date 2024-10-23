@@ -40,3 +40,30 @@ dataSources:
         - event: DelegateVotesChanged(indexed address,uint256,uint256)
           handler: handleDelegateVotesChanged
       file: ./src/breadMapping.ts
+
+  - kind: ethereum
+    name: YieldDistributor
+    network: gnosis
+    source:
+      address: "0xeE95A62b749d8a2520E0128D9b3aCa241269024b"
+      abi: YieldDistributor
+      startBlock: 34696250
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - YieldDistributionEvent
+        - User      
+        - VoteEvent
+      abis:
+        - name: YieldDistributor
+          file: ./abis/YieldDistributor.json
+        - name: Bread   
+          file: ./abis/Bread.json
+      eventHandlers:
+        - event: YieldDistributed(uint256,uint256,uint256[])
+          handler: handleYieldDistributed
+        - event: BreadHolderVoted(indexed address,uint256[],address[])
+          handler: handleBreadHolderVoted
+      file: ./src/breadMapping.ts

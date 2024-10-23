@@ -311,3 +311,49 @@ export function handleDelegateVotesChanged(event: DelegateVotesChanged): void {
 
   breadToken.save();
 }
+
+export function handleYieldDistributed(event: YieldDistributed): void {
+  let entity = new YieldDistributionEvent(
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  );
+
+  entity.totalYield = event.params.totalYield;
+  entity.totalVotes = event.params.totalVotes;
+  entity.projectDistributions = event.params.projectDistributions.map<BigInt>((distribution) => distribution);
+  entity.blockNumber = event.block.number;
+  entity.timestamp = event.block.timestamp;
+  entity.transactionHash = event.transaction.hash;
+
+  entity.save();
+}
+
+export function handleBreadHolderVoted(event: BreadHolderVoted): void {
+  let voterAddress = event.params.account.toHex();
+  let user = loadOrCreateUser(voterAddress);
+
+  if (user.votes == null) {
+    user.votes = BigInt.zero();
+    user.distributions = [];
+  }
+
+  user.lastVotedBlock = event.block.number;
+  user.transactionCount += 1;
+  user.save();
+
+  // Create a new VoteEvent
+  let voteEvent = new VoteEvent(
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  );
+  voteEvent.voter = user.id;
+  voteEvent.points = event.params.points.map<BigInt>((point) => point);
+  voteEvent.projects = event.params.projects.map<Bytes>((project) =>
+    Address.fromString(project.toHexString())
+  );
+  voteEvent.blockNumber = event.block.number;
+  voteEvent.timestamp = event.block.timestamp;
+  voteEvent.transactionHash = event.transaction.hash;
+
+  voteEvent.save();
+}
+
+
