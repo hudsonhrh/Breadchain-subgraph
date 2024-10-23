@@ -1,4 +1,4 @@
-import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
+import { BigInt, Address, Bytes, log } from "@graphprotocol/graph-ts";
 import {
   YieldDistributed,
   BreadHolderVoted,
@@ -37,6 +37,7 @@ function loadOrCreateYieldDistributor(id: string): YieldDistributor {
       project = new Project(id);
       project.address = address;
       project.totalReceivedYield = BigInt.zero();
+      project.save();
     }
     return project;
   }
@@ -67,7 +68,6 @@ function loadOrCreateUser(userId: string): User {
 export function handleYieldDistributed(event: YieldDistributed): void {
     let distributor = loadOrCreateYieldDistributor(event.address.toHex());
     distributor.totalYieldDistributed = distributor.totalYieldDistributed.plus(event.params.yieldAmount);
-    distributor.totalVotes = event.params.totalVotes;
   
     // Create YieldDistributionEvent
     let distributionEventId = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
@@ -131,12 +131,16 @@ export function handleYieldDistributed(event: YieldDistributed): void {
     let voterAddress = event.params.account.toHex();
     let user = loadOrCreateUser(voterAddress);
   
+    // Update user properties
     user.lastVotedBlock = event.block.number;
     user.transactionCount = user.transactionCount + 1;
     user.save();
   
     let distributor = loadOrCreateYieldDistributor(event.address.toHex());
-  
+
+    // Add one to the vote count
+    distributor.totalVotes = distributor.totalVotes.plus(BigInt.fromI32(1));
+
     // Create a new VoteEvent
     let voteEvent = new VoteEvent(
       event.transaction.hash.toHex() + "-" + event.logIndex.toString()
@@ -145,23 +149,51 @@ export function handleYieldDistributed(event: YieldDistributed): void {
     voteEvent.yieldDistributor = distributor.id;
     voteEvent.points = event.params.points.map<BigInt>((point) => point);
   
-    // Use the projects from the distributor's projects list
-    let projects = distributor.projects;
+    // Map the projects from the event parameters
+    let projectAddresses = event.params.projects;
+    let projectIds: string[] = projectAddresses.map<string>((project) => project.toHex());
   
     // Ensure the points and projects arrays are the same length
-    if (voteEvent.points.length != projects.length) {
-      // Handle mismatch, e.g., log error or skip processing
+    if (voteEvent.points.length != projectIds.length) {
+      log.warning("Mismatch in points and projects array lengths: points {}, projects {}", [
+        voteEvent.points.length.toString(),
+        projectIds.length.toString(),
+      ]);
       return;
     }
+  
+    // Load or create Project entities and collect their IDs
+    let projects: string[] = [];
+    for (let i = 0; i < projectIds.length; i++) {
+      let projectAddress = projectAddresses[i];
+      let project = loadOrCreateProject(projectAddress);
+      projects.push(project.id);
+  
+      // Optionally, add the project to the distributor's projects list if not already present
+      if (!distributor.projects.includes(project.id)) {
+        let distributorProjects = distributor.projects;
+        distributorProjects.push(project.id);
+        distributor.projects = distributorProjects;
+      }
+    }
+  
+    // Save the updated distributor
+    distributor.save();
   
     // Associate projects with the vote event
     voteEvent.projects = projects;
   
+    // Set event metadata
     voteEvent.blockNumber = event.block.number;
     voteEvent.timestamp = event.block.timestamp;
     voteEvent.transactionHash = event.transaction.hash;
+  
+    // Save the VoteEvent
     voteEvent.save();
+  
+    log.info("VoteEvent created with ID: {}", [voteEvent.id]);
   }
+  
   
   export function handleProjectAdded(event: ProjectAdded): void {
     let distributor = loadOrCreateYieldDistributor(event.address.toHex());
